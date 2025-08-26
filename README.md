@@ -13,7 +13,7 @@ The Internal Communications Predictor is a web-based application designed to for
 ## Key Components
 
 ### 1. User Interface (UI)
-- **Header & Branding:** UBS-branded header with clear application title and description.
+- **Header & Branding:** Branded header with clear application title and description.
 - **Step-by-Step Workflow:** Four-step process guiding users from article configuration to results.
 - **Toggle Switches:** For classifying article types (e.g., Org Announcement, Top Story) with clear visual feedback.
 - **Dropdowns & Multi-Selects:** For selecting authors, months, weekdays, and multiple topic tags.
@@ -78,3 +78,4 @@ For questions, improvements, or to connect the app to real data sources, contact
 ---
 
 *This application is a prototype and should be validated with real data and business requirements before production use.*
+
