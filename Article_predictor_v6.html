@@ -1,0 +1,1606 @@
+        
+<!--
+====================================================================================
+Internal Communications Viewership Predictor
+====================================================================================
+This application predicts the viewership and engagement of internal articles using
+a simulated machine learning model. It is designed for business analysts, engineers,
+and communications professionals to experiment with article configurations and see
+predicted outcomes before publication.
+
+Key Features:
+- Step-by-step workflow for inputting article details
+- Toggle switches and dropdowns for easy data entry
+- ML-based prediction of views, engagement, click-through, and trending probability
+- Results displayed in both grid and chart formats
+- Export to Excel for further analysis
+
+This file is extensively documented for clarity and onboarding.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Internal Communications Viewership Predictor</title>
+    <!--
+        Main stylesheet imports:
+        - Tailwind CSS for utility classes
+        - FontAwesome for icons
+        - Chart.js for charting
+        - xlsx.js for Excel export
+    -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+    /*
+    ====================================================================================
+    CSS: Application Styling
+    ------------------------------------------------------------------------------------
+    - Defines color palette and gradients
+    - Styles for progress bar, toggles, dropdowns, buttons, cards, and chart container
+    - Responsive and accessible design
+    ====================================================================================
+    */
+        :root {
+            --ubs-red: #E60000;
+            --ubs-red-hover: #cc0000;
+            --ubs-grey: #4A4A4A;
+            --ubs-success: #00A651;
+            --ubs-warning: #FF6B00;
+            --ubs-light-grey: #f8f9fa;
+            --ubs-border: #dee2e6;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            min-height: 100vh;
+        }
+
+        .ubs-gradient {
+            background: linear-gradient(135deg, var(--ubs-red) 0%, #B8001F 100%);
+        }
+
+        .progress-step {
+            transition: all 0.3s ease;
+        }
+
+        .progress-step.active {
+            background: var(--ubs-red);
+            color: white;
+        }
+
+        .progress-step.completed {
+            background: var(--ubs-success);
+            color: white;
+        }
+
+        .progress-line {
+            height: 2px;
+            background: var(--ubs-border);
+            position: relative;
+            margin: 0 1rem;
+            flex: 1;
+        }
+
+        .progress-line.completed {
+            background: var(--ubs-success);
+        }
+
+        .progress-line.active {
+            background: linear-gradient(90deg, var(--ubs-success) 50%, var(--ubs-border) 50%);
+        }
+
+        /* Toggle Switches from V2 */
+        .toggle-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .toggle-container:last-child {
+            border-bottom: none;
+        }
+
+        .toggle-label {
+            font-weight: 500;
+            color: var(--ubs-grey);
+            font-size: 0.95rem;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ddd;
+            transition: .3s;
+            border-radius: 24px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        input:checked + .slider {
+            background-color: var(--ubs-red);
+        }
+
+        input:focus + .slider {
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1), 0 0 0 2px rgba(230, 0, 0, 0.2);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+        .toggle-labels {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+
+        .toggle-state {
+            font-size: 0.8rem;
+            color: #999;
+            min-width: 24px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .toggle-state.active {
+            color: var(--ubs-red);
+            font-weight: 600;
+        }
+
+        /* Searchable Dropdowns from V2 */
+        .single-select-container {
+            position: relative;
+        }
+
+        .single-select-display {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--ubs-border);
+            border-radius: 6px;
+            font-size: 1rem;
+            background: white;
+            cursor: pointer;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            transition: border-color 0.3s ease;
+        }
+
+        .single-select-display:focus {
+            outline: none;
+            border-color: var(--ubs-red);
+        }
+
+        .single-select-display.open {
+            border-color: var(--ubs-red);
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        .single-select-placeholder {
+            color: #999;
+        }
+
+        .single-select-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid var(--ubs-red);
+            border-top: none;
+            border-bottom-left-radius: 6px;
+            border-bottom-right-radius: 6px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .single-select-dropdown.open {
+            display: block;
+        }
+
+        .single-select-search {
+            width: 100%;
+            padding: 10px 12px;
+            border: none;
+            border-bottom: 1px solid var(--ubs-border);
+            font-size: 0.95rem;
+            background: #f8f9fa;
+            outline: none;
+        }
+
+        .single-select-search:focus {
+            background: white;
+            border-bottom-color: var(--ubs-red);
+        }
+
+        .single-select-option {
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .single-select-option:hover {
+            background-color: #f8f9fa;
+        }
+
+        .single-select-option.selected {
+            background-color: #fff5f5;
+            color: var(--ubs-red);
+        }
+
+        .single-select-option.hidden {
+            display: none;
+        }
+
+        /* Multi-Select from V2 */
+        .multi-select-container {
+            position: relative;
+        }
+
+        .multi-select-display {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--ubs-border);
+            border-radius: 6px;
+            font-size: 1rem;
+            background: white;
+            cursor: pointer;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            transition: border-color 0.3s ease;
+        }
+
+        .multi-select-display:focus {
+            outline: none;
+            border-color: var(--ubs-red);
+        }
+
+        .multi-select-display.open {
+            border-color: var(--ubs-red);
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        .multi-select-placeholder {
+            color: #999;
+        }
+
+        .selected-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .tag {
+            background: var(--ubs-red);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .tag-remove {
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            line-height: 1;
+        }
+
+        .tag-remove:hover {
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+        }
+
+        .multi-select-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid var(--ubs-red);
+            border-top: none;
+            border-bottom-left-radius: 6px;
+            border-bottom-right-radius: 6px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .multi-select-dropdown.open {
+            display: block;
+        }
+
+        .multi-select-search {
+            width: 100%;
+            padding: 10px 12px;
+            border: none;
+            border-bottom: 1px solid var(--ubs-border);
+            font-size: 0.95rem;
+            background: #f8f9fa;
+            outline: none;
+        }
+
+        .multi-select-search:focus {
+            background: white;
+            border-bottom-color: var(--ubs-red);
+        }
+
+        .multi-select-option {
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .multi-select-option:hover {
+            background-color: #f8f9fa;
+        }
+
+        .multi-select-option.selected {
+            background-color: #fff5f5;
+            color: var(--ubs-red);
+        }
+
+        .multi-select-option.hidden {
+            display: none;
+        }
+
+        .multi-select-option input[type="checkbox"] {
+            margin: 0;
+            transform: scale(1.1);
+            accent-color: var(--ubs-red);
+        }
+
+        .step-content {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .step-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .metric-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--ubs-red);
+            transition: transform 0.2s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-ubs {
+            background: var(--ubs-red);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-ubs:hover {
+            background: var(--ubs-red-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-ubs:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: var(--ubs-grey);
+            color: white;
+            padding: 0.5rem 1.5rem;
+            min-width: 90px;
+        }
+
+        .btn-secondary:hover {
+            background: #333;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-top: 20px;
+            max-width: 100%;
+            max-height: 480px;
+            overflow-x: auto;
+        }
+
+        #viewershipChart {
+            width: 100% !important;
+            max-width: 100%;
+            height: 360px !important;
+            max-height: 400px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .tooltip {
+            position: relative;
+            cursor: help;
+            display: inline-block;
+        }
+
+        .tooltip::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            top: -38px;
+            left: 50%;
+            transform: translateX(-10%);
+            background: #f8f9fa;
+            color: #333;
+            padding: 6px 22px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-weight: 400;
+            white-space: nowrap;
+            min-width: 320px;
+            max-width: 400px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+            border: 1px solid #e0e0e0;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .tooltip:hover::after {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .tooltip i {
+            font-size: 1rem;
+            color: var(--ubs-red);
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!--
+        ====================================================================================
+        HEADER & PROGRESS BAR
+        ------------------------------------------------------------------------------------
+        - Application title and description
+        - Visual progress bar for 4-step workflow
+        ====================================================================================
+        -->
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">
+                <i class="fas fa-chart-line text-red-600 mr-3"></i>
+                Internal Communications Predictor
+            </h1>
+            <p class="text-lg text-gray-600">Enterprise ML-powered viewership prediction platform</p>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center">
+                    <div class="progress-step active flex items-center justify-center w-10 h-10 rounded-full font-semibold" id="step1-indicator">1</div>
+                    <span class="ml-3 font-medium">Configuration</span>
+                </div>
+                <div class="progress-line" id="line1"></div>
+                <div class="flex items-center">
+                    <div class="progress-step flex items-center justify-center w-10 h-10 rounded-full font-semibold bg-gray-200" id="step2-indicator">2</div>
+                    <span class="ml-3 font-medium">Metadata</span>
+                </div>
+                <div class="progress-line" id="line2"></div>
+                <div class="flex items-center">
+                    <div class="progress-step flex items-center justify-center w-10 h-10 rounded-full font-semibold bg-gray-200" id="step3-indicator">3</div>
+                    <span class="ml-3 font-medium">Topics</span>
+                </div>
+                <div class="progress-line" id="line3"></div>
+                <div class="flex items-center">
+                    <div class="progress-step flex items-center justify-center w-10 h-10 rounded-full font-semibold bg-gray-200" id="step4-indicator">4</div>
+                    <span class="ml-3 font-medium">Results</span>
+                </div>
+            </div>
+        </div>
+
+    <!--
+    ====================================================================================
+    STEP 1: ARTICLE CLASSIFICATION
+    ------------------------------------------------------------------------------------
+    - User selects article type and personalization
+    - Toggle switches for key article features
+    ====================================================================================
+    -->
+        <div class="step-content active" id="step1">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <div class="flex items-center mb-6">
+                    <i class="fas fa-cogs text-2xl mr-3" style="color: var(--ubs-red);"></i>
+                    <h2 class="text-2xl font-bold" style="color: var(--ubs-red);">Article Classification</h2>
+                </div>
+                <div class="w-full border-b-2 border-red-600 my-2" style="height:2px;"></div>
+                <div class="mt-8"></div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+                    <!-- Abstract Personalization -->
+                    <div class="space-y-4">
+                        <label class="block font-semibold text-gray-700">Abstract Personalization</label>
+                        <div class="flex space-x-4">
+                            <label class="flex items-center">
+                                <input type="radio" name="abstract" value="Non-Global" class="mr-2" checked style="accent-color: var(--ubs-red);">
+                                <span>Non-Global</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="abstract" value="Global" class="mr-2" style="accent-color: var(--ubs-red);">
+                                <span>Global</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Toggle Switches -->
+                    <div class="space-y-2">
+                        <div class="toggle-container">
+                            <span class="toggle-label">Org Announcement</span>
+                            <div class="toggle-labels">
+                                <span class="toggle-state active" id="org-no">No</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="orgAnnouncement" onchange="updateToggleState('org', this.checked)">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="toggle-state" id="org-yes">Yes</span>
+                            </div>
+                        </div>
+
+                        <div class="toggle-container">
+                            <span class="toggle-label">Top Story</span>
+                            <div class="toggle-labels">
+                                <span class="toggle-state active" id="top-no">No</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="topStory" onchange="updateToggleState('top', this.checked)">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="toggle-state" id="top-yes">Yes</span>
+                            </div>
+                        </div>
+
+                        <div class="toggle-container">
+                            <span class="toggle-label">Video Promotion</span>
+                            <div class="toggle-labels">
+                                <span class="toggle-state active" id="video-no">No</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="videoPromotion" onchange="updateToggleState('video', this.checked)">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="toggle-state" id="video-yes">Yes</span>
+                            </div>
+                        </div>
+
+                        <div class="toggle-container">
+                            <span class="toggle-label">Success Story</span>
+                            <div class="toggle-labels">
+                                <span class="toggle-state active" id="success-no">No</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="successStory" onchange="updateToggleState('success', this.checked)">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="toggle-state" id="success-yes">Yes</span>
+                            </div>
+                        </div>
+
+                        <div class="toggle-container">
+                            <span class="toggle-label">Operational Update</span>
+                            <div class="toggle-labels">
+                                <span class="toggle-state active" id="operational-no">No</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="operationalUpdate" onchange="updateToggleState('operational', this.checked)">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="toggle-state" id="operational-yes">Yes</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end mt-8">
+                    <button class="btn-ubs" onclick="nextStep()">
+                        Next <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    <!--
+    ====================================================================================
+    STEP 2: PUBLICATION DETAILS
+    ------------------------------------------------------------------------------------
+    - User selects author, month, weekday, and days since publication
+    - All fields are used as input features for the prediction model
+    ====================================================================================
+    -->
+        <div class="step-content" id="step2">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <div class="flex items-center mb-6">
+                    <i class="fas fa-calendar-alt text-2xl mr-3" style="color: var(--ubs-red);"></i>
+                    <h2 class="text-2xl font-bold" style="color: var(--ubs-red);">Publication Details</h2>
+                </div>
+                <div class="w-full border-b-2 border-red-600 my-2" style="height:2px;"></div>
+                <div class="mt-8"></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-2">Author</label>
+                        <div class="single-select-container">
+                            <div class="single-select-display" id="author-display" onclick="toggleSingleSelect('author')">
+                                <span class="single-select-placeholder">Select Author</span>
+                            </div>
+                            <div class="single-select-dropdown" id="author-dropdown">
+                                <input type="text" class="single-select-search" id="author-search" placeholder="Search authors...">
+                                <div id="author-options"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-2">Month</label>
+                        <div class="single-select-container">
+                            <div class="single-select-display" id="month-display" onclick="toggleSingleSelect('month')">
+                                <span class="single-select-placeholder">Select Month</span>
+                            </div>
+                            <div class="single-select-dropdown" id="month-dropdown">
+                                <input type="text" class="single-select-search" id="month-search" placeholder="Search months...">
+                                <div id="month-options"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-2">Weekday</label>
+                        <div class="single-select-container">
+                            <div class="single-select-display" id="weekday-display" onclick="toggleSingleSelect('weekday')">
+                                <span class="single-select-placeholder">Select Weekday</span>
+                            </div>
+                            <div class="single-select-dropdown" id="weekday-dropdown">
+                                <input type="text" class="single-select-search" id="weekday-search" placeholder="Search weekdays...">
+                                <div id="weekday-options"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-2">
+                            Days Since Publication
+                            <i class="fas fa-info-circle tooltip ml-1 text-blue-500" data-tooltip="Number of days after publication to predict viewership"></i>
+                        </label>
+                        <input type="number" id="daysSincePublication" min="1" max="365" placeholder="Enter days" 
+                               class="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-red-600 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="flex justify-between mt-8">
+                    <button class="btn-secondary" onclick="prevStep()">
+                        <i class="fas fa-arrow-left mr-2"></i> Back
+                    </button>
+                    <button class="btn-ubs" onclick="nextStep()">
+                        Next <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    <!--
+    ====================================================================================
+    STEP 3: TOPIC SELECTION
+    ------------------------------------------------------------------------------------
+    - User selects one or more topic tags relevant to the article
+    - Multi-select dropdown with search and tag display
+    ====================================================================================
+    -->
+        <div class="step-content" id="step3">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <div class="flex items-center mb-6">
+                    <i class="fas fa-tags text-2xl mr-3" style="color: var(--ubs-red);"></i>
+                    <h2 class="text-2xl font-bold" style="color: var(--ubs-red);">Topic Selection</h2>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-gray-700 mb-2">Topic Tags (Multiple Selection)</label>
+                    <div class="multi-select-container">
+                        <div class="multi-select-display" id="topic-tags-display" onclick="toggleMultiSelect('topic-tags')">
+                            <span class="multi-select-placeholder">Select Topic Tags</span>
+                        </div>
+                        <div class="multi-select-dropdown" id="topic-tags-dropdown">
+                            <input type="text" class="multi-select-search" id="topic-tags-search" placeholder="Search topic tags...">
+                            <div id="topic-tags-options"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between mt-8">
+                    <button class="btn-secondary" onclick="prevStep()">
+                        <i class="fas fa-arrow-left mr-2"></i> Back
+                    </button>
+                    <button class="btn-ubs" onclick="generatePrediction()">
+                        Generate Prediction <i class="fas fa-chart-line ml-2"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    <!--
+    ====================================================================================
+    STEP 4: RESULTS
+    ------------------------------------------------------------------------------------
+    - Displays predicted metrics in a grid
+    - Shows a chart of daily and cumulative views
+    - Allows export to Excel
+    ====================================================================================
+    -->
+        <div class="step-content" id="step4">
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+                <div class="flex items-center mb-6">
+                    <i class="fas fa-chart-bar text-2xl mr-3" style="color: var(--ubs-red);"></i>
+                    <h2 class="text-2xl font-bold" style="color: var(--ubs-red);">Prediction Results</h2>
+                </div>
+
+                <!-- Results Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" id="resultsGrid">
+                    <!-- Results will be populated here -->
+                </div>
+
+                <!-- Chart Container -->
+                <div class="chart-container">
+                    <h3 class="text-xl font-semibold mb-4">Viewership Timeline</h3>
+                    <canvas id="viewershipChart"></canvas>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-wrap gap-4 mt-8">
+                    <button class="btn-secondary" onclick="resetAll()">
+                        <i class="fas fa-redo mr-2"></i> Start Over
+                    </button>
+                    <button class="btn-ubs" onclick="exportToExcel()">
+                        <i class="fas fa-file-excel mr-2"></i> Export to Excel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!--
+    ====================================================================================
+    JAVASCRIPT: APPLICATION LOGIC & ML SIMULATION
+    ------------------------------------------------------------------------------------
+    - Handles step navigation, dropdowns, toggles, and multi-selects
+    - Simulates ML predictions based on user input
+    - Renders results and chart
+    - Exports results to Excel
+    ====================================================================================
+    -->
+    <script>
+
+
+    // ===============================
+    // GLOBAL VARIABLES
+    // ===============================
+    let currentStep = 1; // Tracks which step the user is on
+    let predictionData = {}; // Stores the latest prediction results
+    let chartInstance = null; // Chart.js instance for viewership timeline
+
+
+        // ===============================
+        // STEP NAVIGATION
+        // ===============================
+        /**
+         * Move to the next step in the workflow.
+         */
+        function nextStep() {
+            if (currentStep < 4) {
+                currentStep++;
+                updateStepDisplay();
+            }
+        }
+
+        /**
+         * Move to the previous step in the workflow.
+         */
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateStepDisplay();
+            }
+        }
+
+        /**
+         * Update the UI to show the current step and progress bar.
+         */
+        function updateStepDisplay() {
+            // Hide all steps and update progress bar
+            for (let i = 1; i <= 4; i++) {
+                const stepDiv = document.getElementById('step' + i);
+                if (stepDiv) stepDiv.classList.remove('active');
+                const indicator = document.getElementById('step' + i + '-indicator');
+                if (indicator) {
+                    indicator.classList.remove('active', 'completed', 'bg-gray-200');
+                    if (i < currentStep) {
+                        indicator.classList.add('completed');
+                    } else if (i === currentStep) {
+                        indicator.classList.add('active');
+                    } else {
+                        indicator.classList.add('bg-gray-200');
+                    }
+                }
+                const line = document.getElementById('line' + (i - 1));
+                if (line) {
+                    line.classList.remove('completed', 'active');
+                    if (i < currentStep) {
+                        line.classList.add('completed');
+                    } else if (i === currentStep) {
+                        line.classList.add('active');
+                    }
+                }
+            }
+            // Show current step
+            const currentStepDiv = document.getElementById('step' + currentStep);
+            if (currentStepDiv) currentStepDiv.classList.add('active');
+        }
+
+
+        // ===============================
+        // DATA ARRAYS (OPTIONS)
+        // ===============================
+        /**
+         * These arrays define the selectable options for authors, months, weekdays, and topic tags.
+         * They are used to populate dropdowns and multi-selects in the UI.
+         */
+        const authors = [
+            "John Smith", "Sarah Johnson", "Michael Brown", "Emily Davis", 
+            "Robert Wilson", "Lisa Anderson", "David Martinez", "Jennifer Taylor",
+            "Christopher Lee", "Amanda White", "James Rodriguez", "Jessica Miller"
+        ];
+
+        const months = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ];
+
+        const weekdays = [
+            "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"
+        ];
+
+        const topicTags = [
+            "Company Strategy", "Financial Results", "HR Updates", "Product Launch",
+            "Market Analysis", "Compliance", "Technology", "Sustainability",
+            "Client Relations", "Risk Management", "Innovation", "Training",
+            "Office Updates", "Events", "Awards", "Partnerships",
+            "Regulatory Changes", "Digital Transformation", "Culture",
+            "Performance", "Investment", "Research", "Operations"
+        ];
+
+
+        // ===============================
+        // STATE: SELECTED VALUES
+        // ===============================
+        /**
+         * Stores the user's current selections for all dropdowns and multi-selects.
+         * Used as input for the prediction model.
+         */
+        let selectedValues = {
+            author: '',
+            month: '',
+            weekday: '',
+            topicTags: []
+        };
+
+
+        // ===============================
+        // INITIALIZATION
+        // ===============================
+        /**
+         * On page load, initialize all dropdowns and multi-selects.
+         */
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDropdowns();
+        });
+
+
+        /**
+         * Initialize all dropdowns and multi-selects with their options.
+         */
+        function initializeDropdowns() {
+            initializeSingleSelect('author', authors);
+            initializeSingleSelect('month', months);
+            initializeSingleSelect('weekday', weekdays);
+            initializeMultiSelect('topic-tags', topicTags);
+        }
+
+
+        /**
+         * Initialize a single-select dropdown (author, month, weekday).
+         * @param {string} id - The dropdown's unique id
+         * @param {Array} options - The list of options to display
+         */
+        function initializeSingleSelect(id, options) {
+            const optionsContainer = document.getElementById(`${id}-options`);
+            const searchInput = document.getElementById(`${id}-search`);
+            
+            optionsContainer.innerHTML = '';
+            
+            options.forEach(option => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'single-select-option';
+                optionDiv.textContent = option;
+                optionDiv.onclick = () => selectSingleOption(id, option);
+                optionsContainer.appendChild(optionDiv);
+            });
+
+            searchInput.addEventListener('input', () => filterSingleOptions(id, options));
+        }
+
+
+        /**
+         * Initialize a multi-select dropdown (topic tags).
+         * @param {string} id - The dropdown's unique id
+         * @param {Array} options - The list of options to display
+         */
+        function initializeMultiSelect(id, options) {
+            const optionsContainer = document.getElementById(`${id}-options`);
+            const searchInput = document.getElementById(`${id}-search`);
+            
+            optionsContainer.innerHTML = '';
+            
+            options.forEach(option => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'multi-select-option';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = option;
+                checkbox.onchange = () => toggleMultiOption(id, option);
+                
+                optionDiv.appendChild(checkbox);
+                optionDiv.appendChild(document.createTextNode(option));
+                optionDiv.onclick = (e) => {
+                    if (e.target !== checkbox) {
+                        checkbox.checked = !checkbox.checked;
+                        toggleMultiOption(id, option);
+                    }
+                };
+                
+                optionsContainer.appendChild(optionDiv);
+            });
+
+            searchInput.addEventListener('input', () => filterMultiOptions(id, options));
+        }
+
+
+        // ===============================
+        // DROPDOWN & MULTI-SELECT TOGGLE
+        // ===============================
+        /**
+         * Toggle the open/close state of a single-select dropdown.
+         * @param {string} id - The dropdown's unique id
+         */
+        function toggleSingleSelect(id) {
+            const dropdown = document.getElementById(`${id}-dropdown`);
+            const display = document.getElementById(`${id}-display`);
+            
+            dropdown.classList.toggle('open');
+            display.classList.toggle('open');
+            
+            if (dropdown.classList.contains('open')) {
+                document.getElementById(`${id}-search`).focus();
+            }
+        }
+
+        /**
+         * Toggle the open/close state of a multi-select dropdown.
+         * @param {string} id - The dropdown's unique id
+         */
+        function toggleMultiSelect(id) {
+            const dropdown = document.getElementById(`${id}-dropdown`);
+            const display = document.getElementById(`${id}-display`);
+            
+            dropdown.classList.toggle('open');
+            display.classList.toggle('open');
+            
+            if (dropdown.classList.contains('open')) {
+                document.getElementById(`${id}-search`).focus();
+            }
+        }
+
+
+        // ===============================
+        // SELECTION FUNCTIONS
+        // ===============================
+        /**
+         * Select an option in a single-select dropdown and update the display.
+         * @param {string} id - The dropdown's unique id
+         * @param {string} value - The selected value
+         */
+        function selectSingleOption(id, value) {
+            selectedValues[id] = value;
+            const display = document.getElementById(`${id}-display`);
+            display.innerHTML = value;
+            
+            const dropdown = document.getElementById(`${id}-dropdown`);
+            dropdown.classList.remove('open');
+            display.classList.remove('open');
+        }
+
+        /**
+         * Toggle a value in a multi-select dropdown (add/remove from selection).
+         * @param {string} id - The dropdown's unique id
+         * @param {string} value - The value to toggle
+         */
+        function toggleMultiOption(id, value) {
+            const arrayKey = id.replace('-', '');
+            if (!selectedValues[arrayKey]) selectedValues[arrayKey] = [];
+            
+            const index = selectedValues[arrayKey].indexOf(value);
+            if (index > -1) {
+                selectedValues[arrayKey].splice(index, 1);
+            } else {
+                selectedValues[arrayKey].push(value);
+            }
+            
+            updateMultiSelectDisplay(id);
+        }
+
+        /**
+         * Update the display of selected tags in the multi-select dropdown.
+         * @param {string} id - The dropdown's unique id
+         */
+        function updateMultiSelectDisplay(id) {
+            const arrayKey = id.replace('-', '');
+            const display = document.getElementById(`${id}-display`);
+            const selected = selectedValues[arrayKey] || [];
+            
+            if (selected.length === 0) {
+                display.innerHTML = '<span class="multi-select-placeholder">Select Topic Tags</span>';
+            } else {
+                const tagsHtml = selected.map(tag => 
+                    `<span class="tag">${tag} <span class="tag-remove" onclick="removeTag('${arrayKey}', '${tag}')">&times;</span></span>`
+                ).join('');
+                display.innerHTML = `<div class="selected-tags">${tagsHtml}</div>`;
+            }
+        }
+
+        /**
+         * Remove a tag from the multi-select selection.
+         * @param {string} arrayKey - The key in selectedValues
+         * @param {string} value - The tag to remove
+         */
+        function removeTag(arrayKey, value) {
+            const index = selectedValues[arrayKey].indexOf(value);
+            if (index > -1) {
+                selectedValues[arrayKey].splice(index, 1);
+            }
+            updateMultiSelectDisplay(arrayKey.includes('tags') ? 'topic-tags' : arrayKey);
+            // Update checkbox
+            const checkbox = document.querySelector(`#topic-tags-options input[value="${value}"]`);
+            if (checkbox) checkbox.checked = false;
+        }
+
+
+        // ===============================
+        // FILTER FUNCTIONS
+        // ===============================
+        /**
+         * Filter options in a single-select dropdown based on search input.
+         * @param {string} id - The dropdown's unique id
+         * @param {Array} options - The list of options
+         */
+        function filterSingleOptions(id, options) {
+            const searchValue = document.getElementById(`${id}-search`).value.toLowerCase();
+            const optionElements = document.querySelectorAll(`#${id}-options .single-select-option`);
+            
+            optionElements.forEach((element, index) => {
+                const text = options[index].toLowerCase();
+                element.style.display = text.includes(searchValue) ? 'block' : 'none';
+            });
+        }
+
+        /**
+         * Filter options in a multi-select dropdown based on search input.
+         * @param {string} id - The dropdown's unique id
+         * @param {Array} options - The list of options
+         */
+        function filterMultiOptions(id, options) {
+            const searchValue = document.getElementById(`${id}-search`).value.toLowerCase();
+            const optionElements = document.querySelectorAll(`#${id}-options .multi-select-option`);
+            
+            optionElements.forEach((element, index) => {
+                const text = options[index].toLowerCase();
+                element.style.display = text.includes(searchValue) ? 'flex' : 'none';
+            });
+        }
+
+
+
+        // ===============================
+        // TOGGLE SWITCH STATE
+        // ===============================
+        /**
+         * Update the visual state of Yes/No toggle labels when the switch is changed.
+         * @param {string} type - The toggle type (e.g., 'org', 'top')
+         * @param {boolean} isChecked - Whether the toggle is on (Yes)
+         */
+        function updateToggleState(type, isChecked) {
+            const noElement = document.getElementById(type + '-no');
+            const yesElement = document.getElementById(type + '-yes');
+            
+            if (isChecked) {
+                noElement.classList.remove('active');
+                yesElement.classList.add('active');
+            } else {
+                yesElement.classList.remove('active');
+                noElement.classList.add('active');
+            }
+        }
+
+
+        // ===============================
+        // CHART RENDERING
+        // ===============================
+        /**
+         * Render the viewership timeline chart using Chart.js.
+         * Shows both daily and cumulative views over time.
+         */
+        function createChart() {
+            const ctx = document.getElementById('viewershipChart').getContext('2d');
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+            const labels = predictionData.timelineData.map(d => `Day ${d.day}`);
+            const dailyViews = predictionData.timelineData.map(d => d.views);
+            const cumulativeViews = predictionData.timelineData.map(d => d.cumulativeViews);
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Daily Views',
+                            data: dailyViews,
+                            borderColor: '#E60000',
+                            backgroundColor: 'rgba(230, 0, 0, 0.1)',
+                            tension: 0.4,
+                            yAxisID: 'y',
+                        },
+                        {
+                            label: 'Cumulative Views',
+                            data: cumulativeViews,
+                            borderColor: '#00A651',
+                            backgroundColor: 'rgba(0, 166, 81, 0.1)',
+                            tension: 0.4,
+                            yAxisID: 'y1',
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Daily Views',
+                            },
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Cumulative Views',
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        },
+                    },
+                },
+            });
+        }
+
+
+        // ===============================
+        // PREDICTION GENERATION
+        // ===============================
+        /**
+         * Collects all user input, simulates a machine learning prediction, and displays results.
+         * Moves the user to the results step and renders the chart.
+         */
+        function generatePrediction() {
+            // Simulate loading state (optional, can be removed if not needed)
+            const loadingSection = document.getElementById('loadingSection');
+            if (loadingSection) loadingSection.style.display = 'block';
+
+            setTimeout(() => {
+                // Collect all form data from UI
+                const formData = {
+                    abstractPersonalization: document.querySelector('input[name="abstract"]:checked')?.value || '',
+                    orgAnnouncement: document.getElementById('orgAnnouncement')?.checked || false,
+                    topStory: document.getElementById('topStory')?.checked || false,
+                    videoPromotion: document.getElementById('videoPromotion')?.checked || false,
+                    successStory: document.getElementById('successStory')?.checked || false,
+                    operationalUpdate: document.getElementById('operationalUpdate')?.checked || false,
+                    author: selectedValues.author,
+                    month: selectedValues.month,
+                    weekday: selectedValues.weekday,
+                    daysSincePublication: document.getElementById('daysSincePublication')?.value || 7,
+                    topicTags: selectedValues.topictagsoptions || []
+                };
+
+                // Generate ML predictions (simulated)
+                predictionData = generateMLPredictions(formData);
+
+                // Move to results step
+                currentStep = 4;
+                updateStepDisplay();
+
+                // Display results and chart
+                displayResults();
+                createChart();
+
+                if (loadingSection) loadingSection.style.display = 'none';
+            }, 1200); // Simulate 1.2s loading
+        }
+
+
+        /**
+         * Simulates a machine learning model to predict article performance.
+         * Factors in toggles, author, weekday, and topic tags.
+         * @param {Object} formData - All user input
+         * @returns {Object} - Prediction results
+         */
+        function generateMLPredictions(formData) {
+            // Start with a base view count
+            let baseViews = 150;
+            
+            // Factor in various parameters (these multipliers are for demonstration only)
+            if (formData.topStory) baseViews *= 1.8;
+            if (formData.videoPromotion) baseViews *= 1.3;
+            if (formData.orgAnnouncement) baseViews *= 1.5;
+            if (formData.successStory) baseViews *= 1.2;
+            if (formData.operationalUpdate) baseViews *= 0.9;
+            
+            // Author influence
+            const authorMultipliers = {
+                'John Smith': 1.2, 'Sarah Johnson': 1.1, 'Michael Brown': 0.9,
+                'Emily Davis': 1.3, 'Robert Wilson': 1.0, 'Lisa Anderson': 1.1
+            };
+            baseViews *= (authorMultipliers[formData.author] || 1.0);
+            
+            // Day of week influence
+            const dayMultipliers = {
+                'Monday': 1.1, 'Tuesday': 1.2, 'Wednesday': 1.0,
+                'Thursday': 0.9, 'Friday': 0.8
+            };
+            baseViews *= (dayMultipliers[formData.weekday] || 1.0);
+            
+            // Topic tags influence
+            const topicMultiplier = Math.min(1 + (formData.topicTags.length * 0.1), 1.5);
+            baseViews *= topicMultiplier;
+            
+            const days = parseInt(formData.daysSincePublication) || 7;
+            
+            // Return simulated prediction results
+            return {
+                predictedViews: Math.round(baseViews * (1 + Math.log(days) * 0.2)),
+                engagementRate: Math.round((15 + Math.random() * 10) * 100) / 100,
+                clickThroughRate: Math.round((3 + Math.random() * 4) * 100) / 100,
+                trendingProbability: Math.round((baseViews > 200 ? 70 : 30) + Math.random() * 20),
+                timelineData: generateTimelineData(baseViews, days)
+            };
+        }
+
+
+        /**
+         * Generates a timeline of daily and cumulative views for the chart.
+         * @param {number} baseViews - The base number of views
+         * @param {number} days - Number of days to predict
+         * @returns {Array} - Timeline data for charting
+         */
+        function generateTimelineData(baseViews, days) {
+            const timeline = [];
+            for (let i = 1; i <= Math.min(days, 30); i++) {
+                const dailyViews = Math.round(baseViews * (1 + Math.log(i) * 0.15) * (0.8 + Math.random() * 0.4));
+                timeline.push({
+                    day: i,
+                    views: dailyViews,
+                    cumulativeViews: timeline.length > 0 ? timeline[timeline.length - 1].cumulativeViews + dailyViews : dailyViews
+                });
+            }
+            return timeline;
+        }
+
+
+        /**
+         * Display the prediction results in a grid of metric cards.
+         * Metrics: Estimated Views, Engagement Rate, Click-Through Rate, Trending Probability
+         */
+        function displayResults() {
+            const grid = document.getElementById('resultsGrid');
+            
+            grid.innerHTML = `
+                <div class="metric-card">
+                    <div class="text-3xl font-bold mb-2" style="color: var(--ubs-red);">${predictionData.predictedViews.toLocaleString()}</div>
+                    <div class="text-sm text-gray-600 uppercase">Estimated Views</div>
+                </div>
+                <div class="metric-card">
+                    <div class="text-3xl font-bold mb-2" style="color: var(--ubs-success);">${predictionData.engagementRate}%</div>
+                    <div class="text-sm text-gray-600 uppercase">Engagement Rate</div>
+                </div>
+                <div class="metric-card">
+                    <div class="text-3xl font-bold mb-2" style="color: var(--ubs-warning);">${predictionData.clickThroughRate}%</div>
+                    <div class="text-sm text-gray-600 uppercase">Click-Through Rate</div>
+                </div>
+                <div class="metric-card">
+                    <div class="text-3xl font-bold mb-2" style="color: var(--ubs-red);">${predictionData.trendingProbability}%</div>
+                    <div class="text-sm text-gray-600 uppercase">Trending Probability</div>
+                </div>
+            `;
+        }
+
+        function createChart() {
+            const ctx = document.getElementById('viewershipChart').getContext('2d');
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+            const labels = predictionData.timelineData.map(d => `Day ${d.day}`);
+            const dailyViews = predictionData.timelineData.map(d => d.views);
+            const cumulativeViews = predictionData.timelineData.map(d => d.cumulativeViews);
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Daily Views',
+                            data: dailyViews,
+                            borderColor: '#E60000',
+                            backgroundColor: 'rgba(230, 0, 0, 0.1)',
+                            tension: 0.4,
+                            yAxisID: 'y',
+                        },
+                        {
+                            label: 'Cumulative Views',
+                            data: cumulativeViews,
+                            borderColor: '#00A651',
+                            backgroundColor: 'rgba(0, 166, 81, 0.1)',
+                            tension: 0.4,
+                            yAxisID: 'y1',
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Daily Views',
+                            },
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Cumulative Views',
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        },
+                    },
+                },
+            });
+        }
+
+
+        // ===============================
+        // EXPORT TO EXCEL
+        // ===============================
+        /**
+         * Export all input parameters, prediction results, and timeline data to an Excel file.
+         * Uses the xlsx.js library to generate a multi-sheet workbook.
+         */
+        function exportToExcel() {
+            const workbook = XLSX.utils.book_new();
+            
+            // Input Parameters Sheet
+            const inputData = [
+                ['Parameter', 'Value'],
+                ['Abstract Personalization', document.querySelector('input[name="abstract"]:checked').value],
+                ['Org Announcement', document.getElementById('orgAnnouncement').checked ? 'Yes' : 'No'],
+                ['Top Story', document.getElementById('topStory').checked ? 'Yes' : 'No'],
+                ['Video Promotion', document.getElementById('videoPromotion').checked ? 'Yes' : 'No'],
+                ['Success Story', document.getElementById('successStory').checked ? 'Yes' : 'No'],
+                ['Operational Update', document.getElementById('operationalUpdate').checked ? 'Yes' : 'No'],
+                ['Author', selectedValues.author || 'Not selected'],
+                ['Month', selectedValues.month || 'Not selected'],
+                ['Weekday', selectedValues.weekday || 'Not selected'],
+                ['Days Since Publication', document.getElementById('daysSincePublication').value || 'Not specified'],
+                ['Topic Tags', (selectedValues.topictagsoptions || []).join(', ') || 'None selected']
+            ];
+            
+            const inputSheet = XLSX.utils.aoa_to_sheet(inputData);
+            XLSX.utils.book_append_sheet(workbook, inputSheet, 'Input Parameters');
+            
+            // ML Predictions Sheet
+            const predictionResults = [
+                ['Metric', 'Value'],
+                ['Estimated Views', predictionData.predictedViews],
+                ['Engagement Rate (%)', predictionData.engagementRate],
+                ['Click-Through Rate (%)', predictionData.clickThroughRate],
+                ['Trending Probability (%)', predictionData.trendingProbability],
+                ['', ''],
+                ['Generated On', new Date().toLocaleString()],
+                ['Model Version', 'v1.2.3']
+            ];
+            
+            const predictionSheet = XLSX.utils.aoa_to_sheet(predictionResults);
+            XLSX.utils.book_append_sheet(workbook, predictionSheet, 'ML Predictions');
+            
+            // Chart Timeline Sheet
+            const chartData = [
+                ['Day', 'Daily Views', 'Cumulative Views']
+            ];
+            predictionData.timelineData.forEach(d => {
+                chartData.push([d.day, d.views, d.cumulativeViews]);
+            });
+            
+            const chartSheet = XLSX.utils.aoa_to_sheet(chartData);
+            XLSX.utils.book_append_sheet(workbook, chartSheet, 'Viewership Timeline');
+            
+            // Export
+            const fileName = `Communications_Prediction_${new Date().toISOString().slice(0,10)}.xlsx`;
+            XLSX.writeFile(workbook, fileName);
+        }
+
+
+        // ===============================
+        // RESET FUNCTION
+        // ===============================
+        /**
+         * Reset the entire form and UI to its initial state.
+         * Useful for starting a new prediction from scratch.
+         */
+        function resetAll() {
+            currentStep = 1;
+            updateStepDisplay();
+            
+            // Reset form fields
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            document.querySelectorAll('input[type="radio"]')[0].checked = true;
+            document.getElementById('daysSincePublication').value = '';
+            
+            // Reset selections
+            selectedValues = {
+                author: '',
+                month: '',
+                weekday: '',
+                topicTags: []
+            };
+            
+            // Reset dropdowns
+            document.getElementById('author-display').innerHTML = '<span class="single-select-placeholder">Select Author</span>';
+            document.getElementById('month-display').innerHTML = '<span class="single-select-placeholder">Select Month</span>';
+            document.getElementById('weekday-display').innerHTML = '<span class="single-select-placeholder">Select Weekday</span>';
+            document.getElementById('topic-tags-display').innerHTML = '<span class="multi-select-placeholder">Select Topic Tags</span>';
+            
+            // Reset toggles
+            document.querySelectorAll('.toggle-state').forEach(state => {
+                state.classList.remove('active');
+            });
+            document.querySelectorAll('.toggle-state[id$="-no"]').forEach(state => {
+                state.classList.add('active');
+            });
+            
+            // Reset checkboxes in multi-select
+            document.querySelectorAll('#topic-tags-options input[type="checkbox"]').forEach(cb => cb.checked = false);
+        }
+
+        // ===============================
+        // DROPDOWN CLOSE HANDLER
+        // ===============================
+        /**
+         * Close all dropdowns if the user clicks outside of them.
+         * Improves UX and prevents dropdowns from staying open.
+         */
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.single-select-container') && !event.target.closest('.multi-select-container')) {
+                document.querySelectorAll('.single-select-dropdown, .multi-select-dropdown').forEach(dropdown => {
+                    dropdown.classList.remove('open');
+                });
+                document.querySelectorAll('.single-select-display, .multi-select-display').forEach(display => {
+                    display.classList.remove('open');
+                });
+            }
+        });
+    </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"rayId":"97512d085e80a032","serverTiming":{"name":{"cfExtPri":true,"cfEdge":true,"cfOrigin":true,"cfL4":true,"cfSpeedBrain":true,"cfCacheStatus":true}},"version":"2025.8.0","token":"4edd5f8ec12a48cfa682ab8261b80a79"}' crossorigin="anonymous"></script>
+</body>
+</html>
+    <script id="html_badge_script1">
+        window.__genspark_remove_badge_link = "https://www.genspark.ai/api/html_badge/" +
+            "remove_badge?token=To%2FBnjzloZ3UfQdcSaYfDl7XfcVq2xF2rkVx3gZO4m2bWvt44omg9ZsEwGa4hxFISirfmxOyEzKJkNeJ174t3iwKR2Cuko9HDf%2FMKRyFyXItlcsgE1qsw8EScRX1g2YH%2FJdONw8DaMExWHBbomyqQEaui12Qe5knMMlilfFCpkfPnJ64%2BilnJnr3HkfFaKtPYWi9jFrNzA4iGtMFtx%2BYWGMJQ5XNOVEbZzvncVi6YTQPtL0wsL2nXa7t9qOC2HrF29sT7HDC00OeRkbzTKXmJt4n6DCr0s6bcWTvw7bItW7e5vuETomt%2FPEaL8Rrax5mGO1cp7XWVm7jgvDiuOD85wI0%2FrxOS40M77q3Nb09evJGHjBsPmcZxhaED2TDCA9IE2PBxvblPqjz%2FiBIjr11AzDl5LwkskwUInTKUS%2FUI2R2lovHmoEHNOJvGFjw9AKm39z%2B1okP81RmnpEfit%2BS5ZTuZf9UPjgilM9A5Em1m5WPu1JxaT0BXES0dsyuDA3oTDdWb1Hzp5UtVs4kAqXb5CUi8HTAFNrNN2RkhXzF3%2F4%3D";
+        window.__genspark_locale = "de-DE";
+        window.__genspark_token = "To/BnjzloZ3UfQdcSaYfDl7XfcVq2xF2rkVx3gZO4m2bWvt44omg9ZsEwGa4hxFISirfmxOyEzKJkNeJ174t3iwKR2Cuko9HDf/MKRyFyXItlcsgE1qsw8EScRX1g2YH/JdONw8DaMExWHBbomyqQEaui12Qe5knMMlilfFCpkfPnJ64+ilnJnr3HkfFaKtPYWi9jFrNzA4iGtMFtx+YWGMJQ5XNOVEbZzvncVi6YTQPtL0wsL2nXa7t9qOC2HrF29sT7HDC00OeRkbzTKXmJt4n6DCr0s6bcWTvw7bItW7e5vuETomt/PEaL8Rrax5mGO1cp7XWVm7jgvDiuOD85wI0/rxOS40M77q3Nb09evJGHjBsPmcZxhaED2TDCA9IE2PBxvblPqjz/iBIjr11AzDl5LwkskwUInTKUS/UI2R2lovHmoEHNOJvGFjw9AKm39z+1okP81RmnpEfit+S5ZTuZf9UPjgilM9A5Em1m5WPu1JxaT0BXES0dsyuDA3oTDdWb1Hzp5UtVs4kAqXb5CUi8HTAFNrNN2RkhXzF3/4=";
+    </script>
+    
+    <script id="html_notice_dialog_script" src="https://www.genspark.ai/notice_dialog.js"></script>
+
+    
+    
