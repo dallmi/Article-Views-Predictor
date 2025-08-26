@@ -918,6 +918,22 @@ This file is extensively documented for clarity and onboarding.
             "Christopher Lee", "Amanda White", "James Rodriguez", "Jessica Miller"
         ];
 
+        // Author name to email mapping
+        const authorEmailMap = {
+            "John Smith": "john.smith@company.com",
+            "Sarah Johnson": "sarah.johnson@company.com",
+            "Michael Brown": "michael.brown@company.com",
+            "Emily Davis": "emily.davis@company.com",
+            "Robert Wilson": "robert.wilson@company.com",
+            "Lisa Anderson": "lisa.anderson@company.com",
+            "David Martinez": "david.martinez@company.com",
+            "Jennifer Taylor": "jennifer.taylor@company.com",
+            "Christopher Lee": "christopher.lee@company.com",
+            "Amanda White": "amanda.white@company.com",
+            "James Rodriguez": "james.rodriguez@company.com",
+            "Jessica Miller": "jessica.miller@company.com"
+        };
+
         const months = [
             "January", "February", "March", "April", "May", "June",
             "July", "August", "September", "October", "November", "December"
@@ -945,7 +961,8 @@ This file is extensively documented for clarity and onboarding.
          * Used as input for the prediction model.
          */
         let selectedValues = {
-            author: '',
+            author: '',        // Name
+            authorEmail: '',  // Email
             month: '',
             weekday: '',
             topicTags: []
@@ -1078,7 +1095,12 @@ This file is extensively documented for clarity and onboarding.
          * @param {string} value - The selected value
          */
         function selectSingleOption(id, value) {
-            selectedValues[id] = value;
+            if (id === 'author') {
+                selectedValues.author = value;
+                selectedValues.authorEmail = authorEmailMap[value] || '';
+            } else {
+                selectedValues[id] = value;
+            }
             const display = document.getElementById(`${id}-display`);
             display.innerHTML = value;
             
@@ -1289,7 +1311,7 @@ This file is extensively documented for clarity and onboarding.
                     videoPromotion: document.getElementById('videoPromotion')?.checked || false,
                     successStory: document.getElementById('successStory')?.checked || false,
                     operationalUpdate: document.getElementById('operationalUpdate')?.checked || false,
-                    author: selectedValues.author,
+                    author: selectedValues.authorEmail || selectedValues.author,
                     month: selectedValues.month,
                     weekday: selectedValues.weekday,
                     daysSincePublication: document.getElementById('daysSincePublication')?.value || 7,
@@ -1601,6 +1623,3 @@ This file is extensively documented for clarity and onboarding.
     </script>
     
     <script id="html_notice_dialog_script" src="https://www.genspark.ai/notice_dialog.js"></script>
-
-    
-    
