@@ -1,4 +1,4 @@
-# UBS Internal Communications Predictor
+# Internal Communications Predictor
 
 ## Overview
 
@@ -79,5 +79,6 @@ For questions, improvements, or to connect the app to real data sources, contact
 ---
 
 *This application is a prototype and should be validated with real data and business requirements before production use.*
+
 
 
