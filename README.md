@@ -54,9 +54,10 @@ A downloadable `.xlsx` file containing all prediction results and input paramete
 - The accuracy of predictions depends on the quality and recency of the underlying ML model.
 
 ## Who Should Use This Application?
-- **Business Analysts:** To forecast communication impact and optimize content strategy.
-- **Internal Communications Teams:** To plan and refine messaging.
-- **Junior Engineers:** To understand the structure and flow of a modern ML-powered web application.
+- **Internal Communications Analysts:** To forecast communication impact and optimize content and channel strategy.
+- **Internal Communications Manager:** Maximizing reach & employee engagement for a specific article.
+- **Internal Communications Editor:** Plan and refine messaging of high performing articles.
+- **Executive Communications Director:** Maximizing reach of C-level communications.
 
 ## Getting Started
 1. Open the application in a web browser.
@@ -78,4 +79,5 @@ For questions, improvements, or to connect the app to real data sources, contact
 ---
 
 *This application is a prototype and should be validated with real data and business requirements before production use.*
+
 
